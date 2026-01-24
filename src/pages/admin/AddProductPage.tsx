@@ -18,7 +18,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createProduct } from "@/api/products";
 import { getCategories } from "@/api/categories";
-import { addProductImageUrls, uploadProductImages } from "@/api/productImages";
+import { uploadProductImages } from "@/api/productImages";
 import { toast } from "sonner";
 
 const toNumberOrUndefined = (value: string) => {
@@ -35,9 +35,7 @@ const AddProductPage = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [categoryId, setCategoryId] = useState<string>("");
 
   const categoriesQuery = useQuery({
@@ -51,16 +49,12 @@ const AddProductPage = () => {
         name: name.trim(),
         description: description.trim(),
         price: toNumberOrUndefined(price) ?? 0,
-        imageUrl: imageFiles.length || imageUrls.length ? undefined : imageUrl.trim() || undefined,
         categoryId: categoryId ? Number(categoryId) : undefined,
       }),
     onSuccess: async (created) => {
       try {
         if (imageFiles.length) {
           await uploadProductImages(created.id, imageFiles);
-        }
-        if (imageUrls.length) {
-          await addProductImageUrls(created.id, imageUrls);
         }
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Failed to upload image");
@@ -210,32 +204,8 @@ const AddProductPage = () => {
               deferred
               onFilesSelected={(files) => {
                 setImageFiles(files);
-                if (files.length) setImageUrl("");
-              }}
-              onUrlsSelected={(urls) => {
-                setImageUrls(urls);
-                if (urls.length) setImageUrl("");
               }}
             />
-
-            <div className="mt-5">
-              <Label className="text-foreground">Image URL</Label>
-              <Input
-                placeholder="https://..."
-                className="mt-2 input-admin"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                disabled={imageFiles.length > 0 || imageUrls.length > 0}
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Upload a file (stored in DB) or provide an external URL.
-              </p>
-              {(imageFiles.length > 0 || imageUrls.length > 0) && (
-                <p className="text-xs text-muted-foreground">
-                  Image URL is disabled because a file is selected.
-                </p>
-              )}
-            </div>
           </div>
 
           {/* Actions */}

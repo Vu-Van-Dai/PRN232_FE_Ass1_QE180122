@@ -3,21 +3,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  addProductImageUrls,
   deleteProductImage,
   setCoverProductImage,
   uploadProductImages,
   type ProductImageItem,
 } from "@/api/productImages";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 type Props = {
   productId?: number;
   existingImages?: ProductImageItem[];
   deferred?: boolean;
   onFilesSelected?: (files: File[]) => void;
-  onUrlsSelected?: (urls: string[]) => void;
 };
 
 type PendingImage = {
@@ -30,8 +27,6 @@ const ImageUpload = ({ productId, existingImages, deferred, onFilesSelected }: P
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [pending, setPending] = useState<PendingImage[]>([]);
-  const [pendingUrls, setPendingUrls] = useState<string[]>([]);
-  const [urlInput, setUrlInput] = useState("");
   const pendingRef = useRef<PendingImage[]>([]);
 
   useEffect(() => {
@@ -77,10 +72,6 @@ const ImageUpload = ({ productId, existingImages, deferred, onFilesSelected }: P
     onFilesSelected?.(nextPending.map((p) => p.file));
   };
 
-  const syncUrlsToParent = (urls: string[]) => {
-    onUrlsSelected?.(urls);
-  };
-
   const addFiles = (files: File[]) => {
     const picked: PendingImage[] = [];
     for (const f of files) {
@@ -117,36 +108,6 @@ const ImageUpload = ({ productId, existingImages, deferred, onFilesSelected }: P
     });
   };
 
-  const addUrl = () => {
-    const raw = urlInput.trim();
-    if (!raw) return;
-    try {
-      const u = new URL(raw);
-      if (u.protocol !== "http:" && u.protocol !== "https:") {
-        toast.error("Only http/https URLs are supported");
-        return;
-      }
-    } catch {
-      toast.error("Invalid URL");
-      return;
-    }
-
-    setPendingUrls((prev) => {
-      const next = [...prev, raw];
-      syncUrlsToParent(next);
-      return next;
-    });
-    setUrlInput("");
-  };
-
-  const removeUrl = (index: number) => {
-    setPendingUrls((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      syncUrlsToParent(next);
-      return next;
-    });
-  };
-
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!productId) throw new Error("Missing productId");
@@ -169,25 +130,6 @@ const ImageUpload = ({ productId, existingImages, deferred, onFilesSelected }: P
     },
     onError: (err: unknown) => {
       toast.error(err instanceof Error ? err.message : "Failed to upload images");
-    },
-  });
-
-  const addUrlsMutation = useMutation({
-    mutationFn: async () => {
-      if (!productId) throw new Error("Missing productId");
-      if (pendingUrls.length === 0) throw new Error("Please enter image URLs");
-      return addProductImageUrls(productId, pendingUrls);
-    },
-    onSuccess: async () => {
-      toast.success("Image URLs added successfully");
-      setPendingUrls([]);
-      syncUrlsToParent([]);
-      await queryClient.invalidateQueries({ queryKey: ["product", productId] });
-      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["products"] });
-    },
-    onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : "Failed to add URLs");
     },
   });
 
@@ -261,46 +203,6 @@ const ImageUpload = ({ productId, existingImages, deferred, onFilesSelected }: P
         </p>
         <p className="text-xs text-primary mt-1">PNG, JPG up to 10MB</p>
       </div>
-
-      {/* Add by URL */}
-      <div className="flex items-center gap-2">
-        <Input
-          value={urlInput}
-          onChange={(e) => setUrlInput(e.target.value)}
-          placeholder="https://example.com/image.jpg"
-          className="input-admin"
-        />
-        <Button type="button" variant="outline" onClick={addUrl}>
-          Add URL
-        </Button>
-      </div>
-
-      {pendingUrls.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-xs text-muted-foreground">{pendingUrls.length} pending URL(s)</div>
-          <div className="space-y-1">
-            {pendingUrls.map((u, idx) => (
-              <div key={`${u}-${idx}`} className="flex items-center justify-between gap-2">
-                <div className="text-xs text-muted-foreground truncate flex-1">{u}</div>
-                <Button type="button" variant="ghost" size="sm" onClick={() => removeUrl(idx)}>
-                  Remove
-                </Button>
-              </div>
-            ))}
-          </div>
-          {canUploadNow ? (
-            <Button
-              type="button"
-              onClick={() => addUrlsMutation.mutate()}
-              disabled={addUrlsMutation.isPending}
-            >
-              {addUrlsMutation.isPending ? "Saving..." : "Save URL images"}
-            </Button>
-          ) : (
-            <div className="text-xs text-muted-foreground">URL images will be saved when you save.</div>
-          )}
-        </div>
-      )}
 
       {/* Images grid */}
       {images.length > 0 && (

@@ -41,10 +41,7 @@ const EditProductPage = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
-
-  const hasImages = (productQuery.data?.images?.length ?? 0) > 0;
 
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
@@ -56,7 +53,6 @@ const EditProductPage = () => {
     setName(productQuery.data.name ?? "");
     setDescription(productQuery.data.description ?? "");
     setPrice(String(productQuery.data.price ?? ""));
-    setImageUrl(productQuery.data.imageUrl ?? "");
     setCategoryId(productQuery.data.categoryId != null ? String(productQuery.data.categoryId) : "");
   }, [productQuery.data]);
 
@@ -76,7 +72,6 @@ const EditProductPage = () => {
         name: name.trim(),
         description: description.trim(),
         price: toNumberOrUndefined(price) ?? 0,
-        imageUrl: imageUrl.trim() || undefined,
         categoryId: categoryId ? Number(categoryId) : undefined,
       }),
     onSuccess: async () => {
@@ -232,26 +227,6 @@ const EditProductPage = () => {
                 productId={productId}
                 existingImages={productQuery.data?.images}
               />
-
-              <div>
-                <Label className="text-foreground">Image URL</Label>
-                <Input
-                  placeholder="https://..."
-                  className="mt-2 input-admin"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  disabled={hasImages}
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Use the uploader above to add multiple files or multiple URLs.
-                </p>
-                {hasImages && (
-                  <p className="text-xs text-muted-foreground">
-                    Image URL is disabled because this product already has uploaded images.
-                    Delete them first if you want to switch to a URL.
-                  </p>
-                )}
-              </div>
             </div>
 
             {/* Actions */}

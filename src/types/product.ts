@@ -26,7 +26,6 @@ export interface CreateProductRequest {
   name: string;
   description: string;
   price: number;
-  imageUrl?: string | null;
   categoryId?: number | null;
 }
 

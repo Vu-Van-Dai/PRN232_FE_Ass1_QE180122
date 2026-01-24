@@ -37,10 +37,3 @@ export async function setCoverProductImage(productId: number, imageId: number) {
     { method: "PUT" },
   );
 }
-
-export async function addProductImageUrls(productId: number, urls: string[]) {
-  return apiRequest<{ message: string }>(`/api/products/${productId}/images/urls`, {
-    method: "POST",
-    body: { urls },
-  });
-}
