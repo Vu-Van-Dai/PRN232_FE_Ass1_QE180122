@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/types/product";
 import { useNavigate } from "react-router-dom";
+import { formatNumber } from "@/lib/utils";
 
 interface ProductTableProps {
   products: Product[];
@@ -74,7 +75,7 @@ const ProductTable = ({ products, onDelete }: ProductTableProps) => {
                     <p className="text-sm text-primary line-clamp-1">{product.description}</p>
                   </div>
                 </td>
-                <td className="p-4 font-medium text-foreground">${product.price.toFixed(2)}</td>
+                <td className="p-4 font-medium text-foreground">{formatNumber(product.price)}</td>
                 <td className="p-4 text-sm text-muted-foreground">
                   {product.category?.name ?? "—"}
                 </td>

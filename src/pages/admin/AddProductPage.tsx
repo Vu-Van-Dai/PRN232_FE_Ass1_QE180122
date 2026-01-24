@@ -20,13 +20,7 @@ import { createProduct } from "@/api/products";
 import { getCategories } from "@/api/categories";
 import { uploadProductImages } from "@/api/productImages";
 import { toast } from "sonner";
-
-const toNumberOrUndefined = (value: string) => {
-  const trimmed = value.trim();
-  if (trimmed === "") return undefined;
-  const num = Number(trimmed);
-  return Number.isFinite(num) ? num : undefined;
-};
+import { formatPriceInput, parsePriceInput } from "@/lib/utils";
 
 const AddProductPage = () => {
   const navigate = useNavigate();
@@ -48,7 +42,7 @@ const AddProductPage = () => {
       createProduct({
         name: name.trim(),
         description: description.trim(),
-        price: toNumberOrUndefined(price) ?? 0,
+        price: parsePriceInput(price) ?? 0,
         categoryId: categoryId ? Number(categoryId) : undefined,
       }),
     onSuccess: async (created) => {
@@ -72,7 +66,7 @@ const AddProductPage = () => {
   const canSubmit =
     name.trim().length > 0 &&
     description.trim().length > 0 &&
-    (toNumberOrUndefined(price) ?? 0) > 0 &&
+    (parsePriceInput(price) ?? 0) > 0 &&
     (categoriesQuery.data?.length ? categoryId.trim() !== "" : true);
 
   return (
@@ -135,9 +129,9 @@ const AddProductPage = () => {
                     <Input
                       placeholder="0.00"
                       className="pl-7 input-admin"
-                      inputMode="decimal"
+                      inputMode="numeric"
                       value={price}
-                      onChange={(e) => setPrice(e.target.value)}
+                      onChange={(e) => setPrice(formatPriceInput(e.target.value))}
                     />
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { formatNumber } from "@/lib/utils";
 
 interface ProductCardProps {
   id: number;
@@ -32,7 +33,7 @@ const ProductCard = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="font-bold text-foreground">
-              ${price.toFixed(2)}
+              {formatNumber(price)}
             </span>
           </div>
           <Link to={`/product/${id}`}>

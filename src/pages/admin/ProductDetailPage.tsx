@@ -7,6 +7,7 @@ import AdminHeader from "@/components/layout/AdminHeader";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { getProductById } from "@/api/products";
+import { formatNumber } from "@/lib/utils";
 
 const fallbackImage = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600";
 
@@ -110,7 +111,7 @@ const ProductDetailPage = () => {
 
             <div className="flex items-center gap-3 mb-6">
               <span className="text-3xl font-bold text-primary">
-                ${productQuery.data?.price?.toFixed(2) ?? "0.00"}
+                {formatNumber(productQuery.data?.price)}
               </span>
             </div>
 

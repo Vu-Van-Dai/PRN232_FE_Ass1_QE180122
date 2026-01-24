@@ -18,13 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProductById, updateProduct } from "@/api/products";
 import { getCategories } from "@/api/categories";
 import { toast } from "sonner";
-
-const toNumberOrUndefined = (value: string) => {
-  const trimmed = value.trim();
-  if (trimmed === "") return undefined;
-  const num = Number(trimmed);
-  return Number.isFinite(num) ? num : undefined;
-};
+import { formatPriceInput, formatNumber, parsePriceInput } from "@/lib/utils";
 
 const EditProductPage = () => {
   const navigate = useNavigate();
@@ -52,12 +46,12 @@ const EditProductPage = () => {
     if (!productQuery.data) return;
     setName(productQuery.data.name ?? "");
     setDescription(productQuery.data.description ?? "");
-    setPrice(String(productQuery.data.price ?? ""));
+    setPrice(productQuery.data.price != null ? formatNumber(productQuery.data.price) : "");
     setCategoryId(productQuery.data.categoryId != null ? String(productQuery.data.categoryId) : "");
   }, [productQuery.data]);
 
   const canSubmit = useMemo(() => {
-    const parsedPrice = toNumberOrUndefined(price) ?? 0;
+    const parsedPrice = parsePriceInput(price) ?? 0;
     return (
       name.trim().length > 0 &&
       description.trim().length > 0 &&
@@ -71,7 +65,7 @@ const EditProductPage = () => {
       updateProduct(productId, {
         name: name.trim(),
         description: description.trim(),
-        price: toNumberOrUndefined(price) ?? 0,
+        price: parsePriceInput(price) ?? 0,
         categoryId: categoryId ? Number(categoryId) : undefined,
       }),
     onSuccess: async () => {
@@ -156,9 +150,9 @@ const EditProductPage = () => {
                       <Input
                         placeholder="0.00"
                         className="pl-7 input-admin"
-                        inputMode="decimal"
+                        inputMode="numeric"
                         value={price}
-                        onChange={(e) => setPrice(e.target.value)}
+                        onChange={(e) => setPrice(formatPriceInput(e.target.value))}
                       />
                     </div>
                   </div>
