@@ -1,7 +1,7 @@
 const DEFAULT_API_BASE_URL = "https://prn232-ass1-qe180122.onrender.com";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL;
 
-export const API_BASE_URL: string =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? DEFAULT_API_BASE_URL;
 
 export class ApiError extends Error {
   status: number;
