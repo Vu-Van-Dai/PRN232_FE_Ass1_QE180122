@@ -22,8 +22,9 @@ export function formatNumber(
 export function formatPriceInput(value: string) {
   const digitsOnly = value.replace(/[^0-9]/g, "");
   if (digitsOnly === "") return "";
-  const num = Number(digitsOnly);
-  return Number.isFinite(num) ? formatNumber(num) : "";
+
+  const normalized = digitsOnly.replace(/^0+(?=\d)/, "");
+  return normalized.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 export function parsePriceInput(value: string) {

@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/api/products";
 import { getCategories } from "@/api/categories";
 import type { Product } from "@/types/product";
+import { formatPriceInput, parsePriceInput } from "@/lib/utils";
 
 const ShopPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,16 +24,16 @@ const ShopPage = () => {
     setCurrentPage(1);
   };
 
-  const minPrice = minPriceInput.trim() === "" ? undefined : Number(minPriceInput);
-  const maxPrice = maxPriceInput.trim() === "" ? undefined : Number(maxPriceInput);
+  const minPrice = parsePriceInput(minPriceInput);
+  const maxPrice = parsePriceInput(maxPriceInput);
 
   const productsQuery = useQuery({
     queryKey: ["products", { search, minPrice, maxPrice }],
     queryFn: () =>
       getProducts({
         search: search.trim() || undefined,
-        minPrice: Number.isFinite(minPrice as number) ? minPrice : undefined,
-        maxPrice: Number.isFinite(maxPrice as number) ? maxPrice : undefined,
+        minPrice,
+        maxPrice,
       }),
   });
 
@@ -97,9 +98,7 @@ const ShopPage = () => {
                   placeholder="Search by name..."
                   className="input-admin text-sm"
                   value={search}
-                  onChange={(e) => {
-                    handleSearchChange(e.target.value);
-                  }}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
 
@@ -110,20 +109,20 @@ const ShopPage = () => {
                   <Input
                     placeholder="$ Min"
                     className="input-admin text-sm"
-                    inputMode="decimal"
+                    inputMode="numeric"
                     value={minPriceInput}
                     onChange={(e) => {
-                      setMinPriceInput(e.target.value);
+                      setMinPriceInput(formatPriceInput(e.target.value));
                       setCurrentPage(1);
                     }}
                   />
                   <Input
                     placeholder="$ Max"
                     className="input-admin text-sm"
-                    inputMode="decimal"
+                    inputMode="numeric"
                     value={maxPriceInput}
                     onChange={(e) => {
-                      setMaxPriceInput(e.target.value);
+                      setMaxPriceInput(formatPriceInput(e.target.value));
                       setCurrentPage(1);
                     }}
                   />
@@ -203,9 +202,7 @@ const ShopPage = () => {
             </div>
             <span className="font-semibold text-foreground">E-Shop</span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            © 2024 E-Shop Inc. All rights reserved.
-          </p>
+          <p className="text-sm text-muted-foreground">© 2024 E-Shop Inc. All rights reserved.</p>
         </footer>
       </main>
     </div>
