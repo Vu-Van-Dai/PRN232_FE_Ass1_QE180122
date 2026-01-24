@@ -18,6 +18,11 @@ const ShopPage = () => {
   const [minPriceInput, setMinPriceInput] = useState("");
   const [maxPriceInput, setMaxPriceInput] = useState("");
 
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
+
   const minPrice = minPriceInput.trim() === "" ? undefined : Number(minPriceInput);
   const maxPrice = maxPriceInput.trim() === "" ? undefined : Number(maxPriceInput);
 
@@ -67,7 +72,7 @@ const ShopPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <ShopHeader />
+      <ShopHeader search={search} onSearchChange={handleSearchChange} />
 
       <main className="max-w-7xl mx-auto p-6">
         <div className="flex gap-8">
@@ -93,8 +98,7 @@ const ShopPage = () => {
                   className="input-admin text-sm"
                   value={search}
                   onChange={(e) => {
-                    setSearch(e.target.value);
-                    setCurrentPage(1);
+                    handleSearchChange(e.target.value);
                   }}
                 />
               </div>

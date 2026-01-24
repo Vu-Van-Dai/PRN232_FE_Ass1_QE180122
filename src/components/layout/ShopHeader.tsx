@@ -2,7 +2,12 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 
-const ShopHeader = () => {
+type ShopHeaderProps = {
+  search?: string;
+  onSearchChange?: (value: string) => void;
+};
+
+const ShopHeader = ({ search = "", onSearchChange }: ShopHeaderProps) => {
   return (
     <header className="bg-card border-b border-border px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -19,6 +24,8 @@ const ShopHeader = () => {
             <Input
               placeholder="Search for products, categories..."
               className="pl-11 py-5 bg-muted/50 border-0 rounded-full"
+              value={search}
+              onChange={(e) => onSearchChange?.(e.target.value)}
             />
           </div>
         </div>
