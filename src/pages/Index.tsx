@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Package, ShoppingBag, ArrowRight } from "lucide-react";
+import { Package, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
@@ -23,12 +23,6 @@ const Index = () => {
               <Package className="w-5 h-5" />
               Admin Panel
               <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
-          <Link to="/shop">
-            <Button size="lg" variant="outline" className="gap-2 h-12 px-6">
-              <ShoppingBag className="w-5 h-5" />
-              View Shop
             </Button>
           </Link>
         </div>
@@ -64,7 +58,7 @@ const Index = () => {
               Chi tiết sản phẩm
             </h3>
             <p className="text-sm text-muted-foreground">
-              Xem trang chi tiết với reviews
+              Xem trang chi tiết sản phẩm
             </p>
           </Link>
         </div>

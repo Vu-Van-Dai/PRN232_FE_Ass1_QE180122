@@ -1,13 +1,86 @@
+import { useState } from "react";
 import { ArrowRight, Eye, List, Image } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AdminHeader from "@/components/layout/AdminHeader";
 import ImageUpload from "@/components/products/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createProduct } from "@/api/products";
+import { getCategories } from "@/api/categories";
+import { addProductImageUrls, uploadProductImages } from "@/api/productImages";
+import { toast } from "sonner";
+
+const toNumberOrUndefined = (value: string) => {
+  const trimmed = value.trim();
+  if (trimmed === "") return undefined;
+  const num = Number(trimmed);
+  return Number.isFinite(num) ? num : undefined;
+};
 
 const AddProductPage = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [categoryId, setCategoryId] = useState<string>("");
+
+  const categoriesQuery = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => getCategories(),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      createProduct({
+        name: name.trim(),
+        description: description.trim(),
+        price: toNumberOrUndefined(price) ?? 0,
+        imageUrl: imageFiles.length || imageUrls.length ? undefined : imageUrl.trim() || undefined,
+        categoryId: categoryId ? Number(categoryId) : undefined,
+      }),
+    onSuccess: async (created) => {
+      try {
+        if (imageFiles.length) {
+          await uploadProductImages(created.id, imageFiles);
+        }
+        if (imageUrls.length) {
+          await addProductImageUrls(created.id, imageUrls);
+        }
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Failed to upload image");
+      }
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Product created successfully!");
+      navigate("/admin/products");
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to create product");
+    },
+  });
+
+  const canSubmit =
+    name.trim().length > 0 &&
+    description.trim().length > 0 &&
+    (toNumberOrUndefined(price) ?? 0) > 0 &&
+    (categoriesQuery.data?.length ? categoryId.trim() !== "" : true);
+
   return (
     <div className="min-h-screen bg-background">
       <AdminHeader />
@@ -53,6 +126,8 @@ const AddProductPage = () => {
                 <Input
                   placeholder="e.g., Wireless Noise-Cancelling Headphones"
                   className="mt-2 input-admin"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </div>
 
@@ -66,15 +141,46 @@ const AddProductPage = () => {
                     <Input
                       placeholder="0.00"
                       className="pl-7 input-admin"
+                      inputMode="decimal"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
                     />
                   </div>
                 </div>
+
                 <div>
-                  <Label className="text-foreground">Stock Quantity</Label>
-                  <Input
-                    placeholder="e.g., 100"
-                    className="mt-2 input-admin"
-                  />
+                  <Label className="text-foreground">
+                    Category {categoriesQuery.data?.length ? <span className="text-destructive">*</span> : null}
+                  </Label>
+                  <div className="mt-2">
+                    <Select value={categoryId} onValueChange={setCategoryId}>
+                      <SelectTrigger className="input-admin">
+                        <SelectValue
+                          placeholder={
+                            categoriesQuery.isLoading
+                              ? "Loading categories..."
+                              : categoriesQuery.isError
+                                ? "Failed to load categories"
+                                : categoriesQuery.data?.length
+                                  ? "Select a category"
+                                  : "No categories yet"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(categoriesQuery.data ?? []).map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {!categoriesQuery.isLoading && !categoriesQuery.isError && (categoriesQuery.data?.length ?? 0) === 0 && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Create a category first in Admin → Category.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -86,6 +192,8 @@ const AddProductPage = () => {
                 <Textarea
                   placeholder="Describe the product features, specifications, and benefits..."
                   className="mt-2 min-h-[160px] input-admin resize-y"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
             </div>
@@ -98,7 +206,36 @@ const AddProductPage = () => {
               <h2 className="text-lg font-semibold text-foreground">Product Media</h2>
             </div>
 
-            <ImageUpload />
+            <ImageUpload
+              deferred
+              onFilesSelected={(files) => {
+                setImageFiles(files);
+                if (files.length) setImageUrl("");
+              }}
+              onUrlsSelected={(urls) => {
+                setImageUrls(urls);
+                if (urls.length) setImageUrl("");
+              }}
+            />
+
+            <div className="mt-5">
+              <Label className="text-foreground">Image URL</Label>
+              <Input
+                placeholder="https://..."
+                className="mt-2 input-admin"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                disabled={imageFiles.length > 0 || imageUrls.length > 0}
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Upload a file (stored in DB) or provide an external URL.
+              </p>
+              {(imageFiles.length > 0 || imageUrls.length > 0) && (
+                <p className="text-xs text-muted-foreground">
+                  Image URL is disabled because a file is selected.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Actions */}
@@ -106,7 +243,11 @@ const AddProductPage = () => {
             <Link to="/admin/products">
               <Button variant="outline">Cancel</Button>
             </Link>
-            <Button className="gap-2">
+            <Button
+              className="gap-2"
+              disabled={!canSubmit || createMutation.isPending}
+              onClick={() => createMutation.mutate()}
+            >
               Save Product
               <ArrowRight className="w-4 h-4" />
             </Button>

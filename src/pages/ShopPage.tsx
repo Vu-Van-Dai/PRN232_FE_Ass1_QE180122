@@ -1,91 +1,68 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ShopHeader from "@/components/layout/ShopHeader";
 import ProductCard from "@/components/products/ProductCard";
 import AdminPagination from "@/components/admin/AdminPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-const products = [
-  {
-    id: "1",
-    name: "Wireless Headphones Pro",
-    category: "Audio & Sound",
-    price: 120.0,
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
-  },
-  {
-    id: "2",
-    name: "Smart Watch Series 5",
-    category: "Wearables",
-    price: 199.0,
-    originalPrice: 250.0,
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
-    isOnSale: true,
-  },
-  {
-    id: "3",
-    name: "Nike Air Max 270",
-    category: "Shoes",
-    price: 160.0,
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
-  },
-  {
-    id: "4",
-    name: "Polaroid OneStep 2",
-    category: "Cameras",
-    price: 99.99,
-    image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400",
-  },
-  {
-    id: "5",
-    name: "Classic Chronograph Watch",
-    category: "Accessories",
-    price: 350.0,
-    image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400",
-  },
-  {
-    id: "6",
-    name: "Retro Sunglasses",
-    category: "Accessories",
-    price: 45.0,
-    image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400",
-  },
-  {
-    id: "7",
-    name: "Ceramic Vase",
-    category: "Home Decor",
-    price: 32.0,
-    image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=400",
-  },
-  {
-    id: "8",
-    name: "Ergonomic Chair",
-    category: "Furniture",
-    price: 299.0,
-    image: "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=400",
-  },
-];
-
-const categories = ["Electronics", "Clothing", "Home & Garden", "Sports"];
+import { useQuery } from "@tanstack/react-query";
+import { getProducts } from "@/api/products";
+import { getCategories } from "@/api/categories";
+import type { Product } from "@/types/product";
 
 const ShopPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(["Clothing"]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [search, setSearch] = useState("");
+  const [minPriceInput, setMinPriceInput] = useState("");
+  const [maxPriceInput, setMaxPriceInput] = useState("");
 
-  const toggleCategory = (category: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
-    );
+  const minPrice = minPriceInput.trim() === "" ? undefined : Number(minPriceInput);
+  const maxPrice = maxPriceInput.trim() === "" ? undefined : Number(maxPriceInput);
+
+  const productsQuery = useQuery({
+    queryKey: ["products", { search, minPrice, maxPrice }],
+    queryFn: () =>
+      getProducts({
+        search: search.trim() || undefined,
+        minPrice: Number.isFinite(minPrice as number) ? minPrice : undefined,
+        maxPrice: Number.isFinite(maxPrice as number) ? maxPrice : undefined,
+      }),
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => getCategories(),
+  });
+
+  const itemsPerPage = 8;
+  const products: Product[] = useMemo(() => productsQuery.data ?? [], [productsQuery.data]);
+  const filteredProducts = useMemo(() => {
+    if (selectedCategoryIds.length === 0) return products;
+    return products.filter((p) => p.categoryId != null && selectedCategoryIds.includes(p.categoryId));
+  }, [products, selectedCategoryIds]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
+  const pagedProducts = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(start, start + itemsPerPage);
+  }, [filteredProducts, currentPage]);
+
+  const toggleCategoryId = (id: number) => {
+    setSelectedCategoryIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
+      return next;
+    });
+    setCurrentPage(1);
+  };
+
+  const resetFilters = () => {
+    setSearch("");
+    setMinPriceInput("");
+    setMaxPriceInput("");
+    setSelectedCategoryIds([]);
+    setCurrentPage(1);
   };
 
   return (
@@ -99,17 +76,55 @@ const ShopPage = () => {
             <div className="card-admin p-5 sticky top-6">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-semibold text-foreground">Filters</h3>
-                <button className="text-sm text-primary hover:underline">Reset</button>
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:underline"
+                  onClick={resetFilters}
+                >
+                  Reset
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-foreground mb-3">Search</h4>
+                <Input
+                  placeholder="Search by name..."
+                  className="input-admin text-sm"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
               </div>
 
               {/* Price Range */}
               <div className="mb-6">
                 <h4 className="text-sm font-medium text-foreground mb-3">Price Range</h4>
                 <div className="flex gap-2">
-                  <Input placeholder="$ Min" className="input-admin text-sm" />
-                  <Input placeholder="$ Max" className="input-admin text-sm" />
+                  <Input
+                    placeholder="$ Min"
+                    className="input-admin text-sm"
+                    inputMode="decimal"
+                    value={minPriceInput}
+                    onChange={(e) => {
+                      setMinPriceInput(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                  <Input
+                    placeholder="$ Max"
+                    className="input-admin text-sm"
+                    inputMode="decimal"
+                    value={maxPriceInput}
+                    onChange={(e) => {
+                      setMaxPriceInput(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
                 </div>
-                <Button className="w-full mt-3" size="sm">
+                <Button className="w-full mt-3" size="sm" onClick={() => productsQuery.refetch()}>
                   Apply Filter
                 </Button>
               </div>
@@ -118,17 +133,21 @@ const ShopPage = () => {
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-3">Categories</h4>
                 <div className="space-y-3">
-                  {categories.map((category) => (
-                    <label
-                      key={category}
-                      className="flex items-center gap-3 cursor-pointer"
-                    >
+                  {categoriesQuery.isLoading && (
+                    <div className="text-sm text-muted-foreground">Loading categories...</div>
+                  )}
+                  {categoriesQuery.isError && (
+                    <div className="text-sm text-destructive">Failed to load categories.</div>
+                  )}
+
+                  {(categoriesQuery.data ?? []).map((category) => (
+                    <label key={category.id} className="flex items-center gap-3 cursor-pointer">
                       <Checkbox
-                        checked={selectedCategories.includes(category)}
-                        onCheckedChange={() => toggleCategory(category)}
+                        checked={selectedCategoryIds.includes(category.id)}
+                        onCheckedChange={() => toggleCategoryId(category.id)}
                       />
                       <span className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                        {category}
+                        {category.name}
                       </span>
                     </label>
                   ))}
@@ -140,34 +159,33 @@ const ShopPage = () => {
           {/* Products Grid */}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold text-foreground">Featured Products</h1>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Sort by:</span>
-                <Select defaultValue="newest">
-                  <SelectTrigger className="w-44 border-0 bg-transparent">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Newest Arrivals</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
-                    <SelectItem value="popular">Most Popular</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <h1 className="text-2xl font-bold text-foreground">All Products</h1>
             </div>
 
+            {productsQuery.isLoading && (
+              <div className="text-sm text-muted-foreground">Loading products...</div>
+            )}
+            {productsQuery.isError && (
+              <div className="text-sm text-destructive">Failed to load products.</div>
+            )}
+
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {products.map((product) => (
-                <ProductCard key={product.id} {...product} />
+              {pagedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  price={product.price}
+                  imageUrl={product.imageUrl}
+                />
               ))}
             </div>
 
             <div className="mt-8 flex justify-center">
               <AdminPagination
                 currentPage={currentPage}
-                totalPages={8}
-                onPageChange={setCurrentPage}
+                totalPages={totalPages}
+                onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), totalPages))}
               />
             </div>
           </div>

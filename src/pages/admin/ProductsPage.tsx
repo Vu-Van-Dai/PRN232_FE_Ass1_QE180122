@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminHeader from "@/components/layout/AdminHeader";
 import ProductTable from "@/components/products/ProductTable";
@@ -7,14 +7,9 @@ import DeleteConfirmModal from "@/components/products/DeleteConfirmModal";
 import AdminPagination from "@/components/admin/AdminPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { deleteProduct, getProducts } from "@/api/products";
 
 const ProductsPage = () => {
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; productName: string }>({
@@ -22,28 +17,56 @@ const ProductsPage = () => {
     productName: "",
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
 
-  const handleDelete = (id: string) => {
-    setDeleteModal({ open: true, productName: "Wireless Headphones X2" });
+  const queryClient = useQueryClient();
+
+  const productsQuery = useQuery({
+    queryKey: ["admin-products", { search }],
+    queryFn: () => getProducts({ search: search.trim() || undefined }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteProduct(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      toast.success("Product deleted successfully!");
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to delete product");
+    },
+  });
+
+  const handleDelete = (id: number, name: string) => {
+    setSelectedProductId(id);
+    setDeleteModal({ open: true, productName: name });
   };
 
   const confirmDelete = () => {
-    toast.success("Product deleted successfully!");
+    if (selectedProductId === null) return;
+    deleteMutation.mutate(selectedProductId);
     setDeleteModal({ open: false, productName: "" });
+    setSelectedProductId(null);
   };
+
+  const itemsPerPage = 10;
+  const products = productsQuery.data ?? [];
+  const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
+  const pagedProducts = products.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="min-h-screen bg-background">
-      <AdminHeader showSearch />
+      <AdminHeader />
 
       <main className="p-6 max-w-7xl mx-auto">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
           <Link to="/admin" className="hover:text-primary transition-colors">
-            Dashboard
           </Link>
-          <span>/</span>
-          <span className="text-foreground">Products</span>
         </div>
 
         {/* Header */}
@@ -70,54 +93,43 @@ const ProductsPage = () => {
               <Input
                 placeholder="Search by name, SKU, or ID..."
                 className="pl-10 input-admin"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
-            </div>
-            <div className="flex gap-3">
-              <Select defaultValue="all">
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="electronics">Electronics</SelectItem>
-                  <SelectItem value="apparel">Apparel</SelectItem>
-                  <SelectItem value="home">Home & Garden</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select defaultValue="all">
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="Stock Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Stock Status</SelectItem>
-                  <SelectItem value="in">In Stock</SelectItem>
-                  <SelectItem value="low">Low Stock</SelectItem>
-                  <SelectItem value="out">Out of Stock</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon">
-                <SlidersHorizontal className="w-4 h-4" />
-              </Button>
             </div>
           </div>
         </div>
 
         {/* Table */}
-        <ProductTable onDelete={handleDelete} />
+        {productsQuery.isLoading && (
+          <div className="text-sm text-muted-foreground">Loading products...</div>
+        )}
+        {productsQuery.isError && (
+          <div className="text-sm text-destructive">Failed to load products.</div>
+        )}
+        {!productsQuery.isLoading && !productsQuery.isError && (
+          <ProductTable products={pagedProducts} onDelete={handleDelete} />
+        )}
 
         {/* Pagination */}
         <AdminPagination
           currentPage={currentPage}
-          totalPages={50}
-          onPageChange={setCurrentPage}
-          totalItems={248}
-          itemsPerPage={5}
+          totalPages={totalPages}
+          onPageChange={(p) => setCurrentPage(Math.min(Math.max(1, p), totalPages))}
+          totalItems={products.length}
+          itemsPerPage={itemsPerPage}
         />
 
         {/* Delete Modal */}
         <DeleteConfirmModal
           isOpen={deleteModal.open}
-          onClose={() => setDeleteModal({ open: false, productName: "" })}
+          onClose={() => {
+            setDeleteModal({ open: false, productName: "" });
+            setSelectedProductId(null);
+          }}
           onConfirm={confirmDelete}
           productName={deleteModal.productName}
         />
