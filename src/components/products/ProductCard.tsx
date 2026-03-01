@@ -4,6 +4,8 @@ import { formatNumber } from "@/lib/utils";
 import { useCart } from "@/cart/CartContext";
 import { toast } from "sonner";
 import { Eye, ShoppingCart } from "lucide-react";
+import { useAuth } from "@/auth/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
   id: number;
@@ -19,6 +21,9 @@ const ProductCard = ({
   imageUrl,
 }: ProductCardProps) => {
   const { addItem } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const resolvedImageUrl =
     imageUrl ?? "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
 
@@ -46,6 +51,10 @@ const ProductCard = ({
               variant="outline"
               size="icon"
               onClick={() => {
+                if (!user) {
+                  navigate("/login", { state: { from: location.pathname } });
+                  return;
+                }
                 addItem({ productId: id, name, price, imageUrl: resolvedImageUrl }, 1);
                 toast.success("Added to cart");
               }}

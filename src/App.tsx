@@ -20,6 +20,7 @@ import RegisterPage from "./pages/RegisterPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrdersPage from "./pages/OrdersPage";
+import OrderDetailPage from "./pages/OrderDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -38,7 +39,14 @@ const App = () => (
 
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/cart" element={<CartPage />} />
+              <Route
+                path="/cart"
+                element={
+                  <RequireAuth>
+                    <CartPage />
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="/checkout"
                 element={
@@ -52,6 +60,14 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <OrdersPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/orders/:id"
+                element={
+                  <RequireAuth>
+                    <OrderDetailPage />
                   </RequireAuth>
                 }
               />

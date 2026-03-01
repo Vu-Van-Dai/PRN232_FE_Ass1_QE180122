@@ -2,6 +2,7 @@ export interface OrderItem {
   id: number;
   productId: number;
   productName: string;
+  imageUrl?: string | null;
   unitPrice: number;
   quantity: number;
   lineTotal: number;

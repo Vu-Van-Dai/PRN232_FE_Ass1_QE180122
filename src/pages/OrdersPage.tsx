@@ -2,6 +2,8 @@ import ShopHeader from "@/components/layout/ShopHeader";
 import { useQuery } from "@tanstack/react-query";
 import { getMyOrders } from "@/api/orders";
 import { formatNumber } from "@/lib/utils";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 export default function OrdersPage() {
   const ordersQuery = useQuery({
@@ -32,7 +34,12 @@ export default function OrdersPage() {
                     {new Date(o.createdAt).toLocaleString()} · Status: {o.status}
                   </div>
                 </div>
-                <div className="text-lg font-bold text-foreground">{formatNumber(o.totalAmount)}</div>
+                <div className="flex items-center gap-3">
+                  <div className="text-lg font-bold text-foreground">{formatNumber(o.totalAmount)}</div>
+                  <Link to={`/orders/${o.id}`}>
+                    <Button variant="outline" size="sm">Chi tiết</Button>
+                  </Link>
+                </div>
               </div>
 
               <div className="mt-4 border-t border-border pt-4 space-y-2">

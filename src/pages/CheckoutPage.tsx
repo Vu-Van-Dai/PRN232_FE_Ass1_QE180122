@@ -1,16 +1,67 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ShopHeader from "@/components/layout/ShopHeader";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/cart/CartContext";
 import { placeOrder } from "@/api/orders";
+import { createPayOSPaymentLinkFromCart } from "@/api/payments";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
+import * as QRCode from "qrcode";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import type { PayOSPaymentLink } from "@/types/payment";
+import { apiRequest } from "@/api/http";
 
 export default function CheckoutPage() {
   const { items, totalAmount, clear } = useCart();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "payos">("cod");
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [payosLink, setPayosLink] = useState<PayOSPaymentLink | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  type PayOSPaymentStatus = { orderCode: number; status: string; isPaid: boolean };
+
+  useEffect(() => {
+    if (!payDialogOpen || !payosLink) return;
+
+    let isStopped = false;
+    const interval = window.setInterval(async () => {
+      if (isStopped) return;
+      try {
+        const st = await apiRequest<PayOSPaymentStatus>(`/api/payments/payos-status/${payosLink.orderCode}`);
+        if (st.isPaid) {
+          isStopped = true;
+          window.clearInterval(interval);
+
+          // Only now create order.
+          await placeOrder(request);
+          clear();
+          toast.success("Order placed successfully");
+          setPayDialogOpen(false);
+          navigate("/orders", { replace: true });
+        }
+      } catch {
+        // ignore transient errors while polling
+      }
+    }, 2500);
+
+    return () => {
+      isStopped = true;
+      window.clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payDialogOpen, payosLink?.orderCode]);
 
   const request = useMemo(
     () => ({ items: items.map((x) => ({ productId: x.productId, quantity: x.quantity })) }),
@@ -21,7 +72,17 @@ export default function CheckoutPage() {
     if (items.length === 0) return;
     setIsSubmitting(true);
     try {
+      if (paymentMethod === "payos") {
+        const link = await createPayOSPaymentLinkFromCart(request);
+        const dataUrl = await QRCode.toDataURL(link.qrCode, { width: 260, margin: 1 });
+        setPayosLink(link);
+        setQrDataUrl(dataUrl);
+        setPayDialogOpen(true);
+        return;
+      }
+
       await placeOrder(request);
+
       clear();
       toast.success("Order placed successfully");
       navigate("/orders", { replace: true });
@@ -43,6 +104,24 @@ export default function CheckoutPage() {
         ) : (
           <div className="card-admin p-6">
             <h2 className="text-lg font-semibold text-foreground">Confirm order</h2>
+
+            <div className="mt-5">
+              <div className="text-sm font-medium text-foreground mb-3">Payment method</div>
+              <RadioGroup
+                value={paymentMethod}
+                onValueChange={(v) => setPaymentMethod(v === "payos" ? "payos" : "cod")}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="cod" id="pm-cod" />
+                  <Label htmlFor="pm-cod">Cash on delivery</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="payos" id="pm-payos" />
+                  <Label htmlFor="pm-payos">Bank transfer</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             <div className="mt-4 space-y-3">
               {items.map((it) => (
                 <div key={it.productId} className="flex items-center justify-between">
@@ -68,6 +147,46 @@ export default function CheckoutPage() {
           </div>
         )}
       </main>
+
+      <Dialog
+        open={payDialogOpen}
+        onOpenChange={(open) => {
+          setPayDialogOpen(open);
+          if (!open) {
+            setPayosLink(null);
+            setQrDataUrl(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Quét QR để thanh toán</DialogTitle>
+            <DialogDescription>
+              Số tiền: {formatNumber(payosLink?.amount ?? totalAmount)}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-center">
+            {qrDataUrl ? (
+              <img src={qrDataUrl} alt="PayOS QR" className="w-[260px] h-[260px]" />
+            ) : (
+              <div className="text-sm text-muted-foreground">Generating QR...</div>
+            )}
+          </div>
+
+          <div className="text-center text-sm text-muted-foreground">Đang chờ thanh toán...</div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPayDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Hủy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import ShopHeader from "@/components/layout/ShopHeader";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -7,6 +7,7 @@ import { getProductById } from "@/api/products";
 import { formatNumber } from "@/lib/utils";
 import { useCart } from "@/cart/CartContext";
 import { toast } from "sonner";
+import { useAuth } from "@/auth/AuthContext";
 
 const fallbackImage = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600";
 
@@ -14,6 +15,9 @@ export default function ProductDetailPage() {
   const params = useParams();
   const productId = Number(params.id);
   const { addItem } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const productQuery = useQuery({
     queryKey: ["product", productId],
@@ -40,6 +44,10 @@ export default function ProductDetailPage() {
   }, [productImages.length, selectedImage]);
 
   const onAddToCart = () => {
+    if (!user) {
+      navigate("/login", { state: { from: location.pathname } });
+      return;
+    }
     const p = productQuery.data;
     if (!p) return;
     addItem({ productId: p.id, name: p.name, price: p.price, imageUrl: p.imageUrl ?? null }, 1);
