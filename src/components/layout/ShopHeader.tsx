@@ -1,6 +1,9 @@
-import { Search } from "lucide-react";
+import { Search, ShoppingCart, ReceiptText, LayoutDashboard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/auth/AuthContext";
+import { useCart } from "@/cart/CartContext";
 
 type ShopHeaderProps = {
   search?: string;
@@ -8,6 +11,9 @@ type ShopHeaderProps = {
 };
 
 const ShopHeader = ({ search = "", onSearchChange }: ShopHeaderProps) => {
+  const { user, logout } = useAuth();
+  const { totalQuantity } = useCart();
+
   return (
     <header className="bg-card border-b border-border px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -31,19 +37,69 @@ const ShopHeader = ({ search = "", onSearchChange }: ShopHeaderProps) => {
         </div>
 
         <div className="flex items-center gap-6">
-          <nav className="hidden lg:flex items-center gap-6">
-            <Link
-              to="/"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Home
+          {user?.role === "Admin" ? (
+            <Link to="/admin/products">
+              <Button variant="outline" size="sm" className="gap-2">
+                <LayoutDashboard className="w-4 h-4" />
+                Admin Panel
+              </Button>
             </Link>
-            <Link to="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Admin
-            </Link>
-          </nav>
+          ) : (
+            <nav className="hidden lg:flex items-center gap-6">
+              <Link
+                to="/"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Home
+              </Link>
+            </nav>
+          )}
 
-          {/* Cart / Account removed (not implemented) */}
+          {user?.role !== "Admin" ? (
+            <div className="flex items-center gap-2">
+              <Link to="/cart" aria-label="Cart">
+                <Button variant="outline" size="icon" className="relative">
+                  <ShoppingCart className="w-4 h-4" />
+                  {totalQuantity > 0 ? (
+                    <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-primary text-primary-foreground text-[11px] leading-5 text-center">
+                      {totalQuantity}
+                    </span>
+                  ) : null}
+                </Button>
+              </Link>
+
+              {user ? (
+                <Link to="/orders" aria-label="Orders">
+                  <Button variant="outline" size="icon">
+                    <ReceiptText className="w-4 h-4" />
+                  </Button>
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+
+          {user ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await logout();
+              }}
+            >
+              Logout
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link to="/login">
+                <Button variant="outline" size="sm">
+                  Login
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm">Register</Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </header>

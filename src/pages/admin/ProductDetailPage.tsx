@@ -52,14 +52,14 @@ const ProductDetailPage = () => {
         <div className="grid lg:grid-cols-2 gap-10">
           {/* Image Gallery */}
           <div>
-            <div className="relative rounded-2xl overflow-hidden bg-muted/30 mb-4">
+            <div className="relative rounded-2xl overflow-hidden bg-muted/30 mb-4 p-4">
               <span className="absolute top-4 left-4 z-10 bg-foreground text-background text-xs font-medium px-3 py-1 rounded">
                 NEW ARRIVAL
               </span>
               <img
                 src={productImages[selectedImage]}
                 alt="Product"
-                className="w-full aspect-square object-cover"
+                className="w-full aspect-square object-contain"
               />
             </div>
             <div className="flex gap-3">
@@ -67,11 +67,11 @@ const ProductDetailPage = () => {
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors ${
+                  className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors bg-muted/30 p-1 ${
                     selectedImage === index ? "border-primary" : "border-transparent"
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <img src={img} alt="" className="w-full h-full object-contain" />
                 </button>
               ))}
             </div>

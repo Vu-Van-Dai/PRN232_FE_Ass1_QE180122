@@ -92,7 +92,7 @@ const ProductTable = ({ products, onDelete }: ProductTableProps) => {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         className="gap-2 cursor-pointer"
-                        onSelect={() => navigate(`/product/${product.id}`)}
+                        onSelect={() => navigate(`/admin/products/${product.id}`)}
                       >
                         <Eye className="w-4 h-4" /> View
                       </DropdownMenuItem>

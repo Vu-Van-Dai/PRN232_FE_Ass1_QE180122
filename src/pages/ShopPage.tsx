@@ -5,6 +5,8 @@ import AdminPagination from "@/components/admin/AdminPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/auth/AuthContext";
 
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/api/products";
@@ -13,6 +15,12 @@ import type { Product } from "@/types/product";
 import { formatPriceInput, parsePriceInput } from "@/lib/utils";
 
 const ShopPage = () => {
+  const { user, isLoading } = useAuth();
+
+  if (!isLoading && user?.role === "Admin") {
+    return <Navigate to="/admin/products" replace />;
+  }
+
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");

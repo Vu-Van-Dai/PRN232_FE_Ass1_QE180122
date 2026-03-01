@@ -1,4 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/auth/AuthContext";
 
 const navItems = [
   { label: "Home", path: "/" },
@@ -12,6 +14,7 @@ interface AdminHeaderProps {
 
 const AdminHeader = ({ showSearch = false }: AdminHeaderProps) => {
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <header className="bg-card border-b border-border px-6 py-4">
@@ -45,7 +48,14 @@ const AdminHeader = ({ showSearch = false }: AdminHeaderProps) => {
           </nav>
         </div>
 
-        <div />
+        <div className="flex items-center gap-3">
+          {user?.email ? (
+            <span className="hidden sm:inline text-sm text-muted-foreground">{user.email}</span>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={() => logout()}>
+            Logout
+          </Button>
+        </div>
       </div>
     </header>
   );

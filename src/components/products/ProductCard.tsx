@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { formatNumber } from "@/lib/utils";
+import { useCart } from "@/cart/CartContext";
+import { toast } from "sonner";
+import { Eye, ShoppingCart } from "lucide-react";
 
 interface ProductCardProps {
   id: number;
@@ -15,16 +18,18 @@ const ProductCard = ({
   price,
   imageUrl,
 }: ProductCardProps) => {
+  const { addItem } = useCart();
   const resolvedImageUrl =
     imageUrl ?? "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
 
   return (
     <div className="card-admin overflow-hidden group animate-fade-in">
-      <div className="relative aspect-square overflow-hidden bg-muted/30">
+      <div className="relative aspect-square overflow-hidden bg-muted/30 p-3">
         <img
           src={resolvedImageUrl}
           alt={name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          loading="lazy"
+          className="w-full h-full object-contain"
         />
       </div>
       <div className="p-4">
@@ -36,11 +41,24 @@ const ProductCard = ({
               {formatNumber(price)}
             </span>
           </div>
-          <Link to={`/product/${id}`}>
-            <Button variant="outline" size="sm" className="text-xs">
-              View Detail
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                addItem({ productId: id, name, price, imageUrl: resolvedImageUrl }, 1);
+                toast.success("Added to cart");
+              }}
+              aria-label="Add to cart"
+            >
+              <ShoppingCart className="w-4 h-4" />
             </Button>
-          </Link>
+            <Link to={`/product/${id}`}>
+              <Button variant="outline" size="icon" aria-label="View detail">
+                <Eye className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>

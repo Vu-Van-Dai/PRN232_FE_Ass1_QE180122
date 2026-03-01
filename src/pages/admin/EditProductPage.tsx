@@ -102,7 +102,7 @@ const EditProductPage = () => {
               Update product details to match your inventory.
             </p>
           </div>
-          <Link to={`/product/${productId}`}>
+          <Link to={`/admin/products/${productId}`}>
             <Button variant="outline" className="gap-2" disabled={!Number.isFinite(productId)}>
               <Eye className="w-4 h-4" />
               View

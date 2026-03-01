@@ -1,6 +1,30 @@
 const DEFAULT_API_BASE_URL = "https://prn232-ass1-qe180122.onrender.com";
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
+
+function resolveApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  return (envUrl && envUrl.trim().length > 0 ? envUrl : DEFAULT_API_BASE_URL).trim();
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
+
+const ACCESS_TOKEN_KEY = "accessToken";
+
+export function getStoredAccessToken(): string | null {
+  try {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredAccessToken(token: string | null) {
+  try {
+    if (!token) localStorage.removeItem(ACCESS_TOKEN_KEY);
+    else localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  } catch {
+    // ignore
+  }
+}
 
 
 export class ApiError extends Error {
@@ -64,6 +88,11 @@ export async function apiRequest<T>(
     ...(!isFormData && rawBody != null && !isBodyInit ? { "Content-Type": "application/json" } : {}),
     ...(options.headers ?? {}),
   };
+
+  const token = getStoredAccessToken();
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   const body: BodyInit | undefined =
     rawBody == null
