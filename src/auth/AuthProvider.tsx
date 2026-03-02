@@ -3,6 +3,7 @@ import AuthContext from "@/auth/AuthContext";
 import type { AuthUser } from "@/types/auth";
 import { getMe, login as apiLogin, logout as apiLogout, register as apiRegister } from "@/api/auth";
 import { ApiError, getStoredAccessToken, setStoredAccessToken } from "@/api/http";
+import { emitAuthLogoutEvent } from "@/auth/authEvents";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getStoredAccessToken());
@@ -24,6 +25,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         setStoredAccessToken(null);
         setToken(null);
         setUser(null);
+        emitAuthLogoutEvent();
       }
     }
   }, [token]);
@@ -65,6 +67,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     setStoredAccessToken(null);
     setToken(null);
     setUser(null);
+    emitAuthLogoutEvent();
   }, []);
 
   const value = useMemo(

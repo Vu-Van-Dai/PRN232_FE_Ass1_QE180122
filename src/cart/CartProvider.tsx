@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CartContext, { type CartItem } from "@/cart/CartContext";
+import { AUTH_LOGOUT_EVENT } from "@/auth/authEvents";
 
 const CART_KEY = "cartItems";
 
@@ -29,6 +30,12 @@ export default function CartProvider({ children }: { children: React.ReactNode }
   const [items, setItems] = useState<CartItem[]>(() => readCart());
 
   useEffect(() => {
+    const onLogout = () => setItems([]);
+    window.addEventListener(AUTH_LOGOUT_EVENT, onLogout);
+    return () => window.removeEventListener(AUTH_LOGOUT_EVENT, onLogout);
+  }, []);
+
+  useEffect(() => {
     writeCart(items);
   }, [items]);
 
@@ -45,6 +52,11 @@ export default function CartProvider({ children }: { children: React.ReactNode }
 
   const removeItem = useCallback((productId: number) => {
     setItems((prev) => prev.filter((x) => x.productId !== productId));
+  }, []);
+
+  const removeItems = useCallback((productIds: number[]) => {
+    const idSet = new Set(productIds);
+    setItems((prev) => prev.filter((x) => !idSet.has(x.productId)));
   }, []);
 
   const setQuantity = useCallback((productId: number, quantity: number) => {
@@ -65,8 +77,8 @@ export default function CartProvider({ children }: { children: React.ReactNode }
   );
 
   const value = useMemo(
-    () => ({ items, addItem, removeItem, setQuantity, clear, totalAmount, totalQuantity }),
-    [items, addItem, removeItem, setQuantity, clear, totalAmount, totalQuantity]
+    () => ({ items, addItem, removeItem, removeItems, setQuantity, clear, totalAmount, totalQuantity }),
+    [items, addItem, removeItem, removeItems, setQuantity, clear, totalAmount, totalQuantity]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
